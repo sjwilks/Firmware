@@ -76,6 +76,7 @@ void build_eam_response(uint8_t *buffer, int *size)
 	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
 	msg.temperature2 = TEMP_ZERO_CELSIUS;
 	msg.main_voltage_L = (uint8_t)(battery.voltage_v * 10);
+	msg.current_L = (uint8_t)(battery.current_a / 10);
 
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
