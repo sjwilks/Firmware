@@ -134,11 +134,11 @@ volatile uint16_t	r_page_setup[] =
 	[PX4IO_P_SETUP_FEATURES]		= 0,
 	[PX4IO_P_SETUP_ARMING]			= 0,
 	[PX4IO_P_SETUP_PWM_RATES]		= 0,
-	[PX4IO_P_SETUP_PWM_DEFAULTRATE]		= 50,
+	[PX4IO_P_SETUP_PWM_DEFAULTRATE]	= 50,
 	[PX4IO_P_SETUP_PWM_ALTRATE]		= 200,
 	[PX4IO_P_SETUP_RELAYS]			= 0,
 	[PX4IO_P_SETUP_VBATT_SCALE]		= 10000,
-	[PX4IO_P_SETUP_IBATT_SCALE]		= 0,
+	[PX4IO_P_SETUP_IBATT_SCALE]		= 109,
 	[PX4IO_P_SETUP_IBATT_BIAS]		= 0,
 	[PX4IO_P_SETUP_SET_DEBUG]		= 0,
 };
@@ -516,12 +516,14 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 		/* PX4IO_P_STATUS_IBATT */
 		{
-			unsigned counts = adc_measure(ADC_VBATT);
-			unsigned scaled = (counts * r_page_setup[PX4IO_P_SETUP_IBATT_SCALE]) / 10000;
-			int corrected = scaled + REG_TO_SIGNED(r_page_setup[PX4IO_P_SETUP_IBATT_BIAS]);
-			if (corrected < 0)
-				corrected = 0;
-			r_page_status[PX4IO_P_STATUS_IBATT] = corrected;
+			unsigned counts = adc_measure(ADC_IN5);
+			//unsigned scaled = (counts * r_page_setup[PX4IO_P_SETUP_IBATT_SCALE]) / 10000;
+			// 45 / 4096 * counts 
+			//unsigned mA = 10.9f * counts; 
+			//int corrected = mA + REG_TO_SIGNED(r_page_setup[PX4IO_P_SETUP_IBATT_BIAS]);
+			//if (corrected < 0)
+			//	corrected = 0;
+			r_page_status[PX4IO_P_STATUS_IBATT] = counts;
 		}
 
 		SELECT_PAGE(r_page_status);
