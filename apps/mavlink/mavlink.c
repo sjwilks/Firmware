@@ -700,7 +700,7 @@ int mavlink_thread_main(int argc, char *argv[])
 						    v_status.onboard_control_sensors_health,
 						    v_status.load,
 						    v_status.voltage_battery * 1000.0f,
-						    v_status.current_battery * 1000.0f,
+						    v_status.current_battery,
 						    v_status.battery_remaining,
 						    v_status.drop_rate_comm,
 						    v_status.errors_comm,

@@ -1020,7 +1020,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						}
 
 						_battery_status.timestamp = hrt_absolute_time();
-						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
+						_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));
 						/* current and discharge are unknown */
 						_battery_status.current_a = -1.0f;
 						_battery_status.discharged_mah = -1.0f;

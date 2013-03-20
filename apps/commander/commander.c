@@ -1440,6 +1440,8 @@ int commander_thread_main(int argc, char *argv[])
 	uint16_t critical_voltage_counter = 0;
 	int16_t mode_switch_rc_value;
 	float bat_remain = 1.0f;
+	/* Initialize current to 0.0A */
+	float battery_current = 0.0f;
 
 	uint16_t stick_off_counter = 0;
 	uint16_t stick_on_counter = 0;
@@ -1608,6 +1610,7 @@ int commander_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
 			battery_voltage = battery.voltage_v;
 			battery_voltage_valid = true;
+			battery_current = battery.current_a;
 
 			/*
 			 * Only update battery voltage estimate if system has
@@ -1685,9 +1688,11 @@ int commander_thread_main(int argc, char *argv[])
 		/* write to sys_status */
 		if (battery_voltage_valid) {
 			current_status.voltage_battery = battery_voltage;
+			current_status.current_battery = battery_current;
 
 		} else {
 			current_status.voltage_battery = 0.0f;
+			current_status.current_battery = 0.0f;
 		}
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */

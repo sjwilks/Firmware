@@ -885,7 +885,7 @@ PX4IO::io_get_status()
 		battery_status.voltage_v = regs[2] / 1000.0f;
 
 		/* current scaling should be to cA in order to avoid limiting at 65A */
-		battery_status.current_a = regs[3] / 100.f;
+		battery_status.current_a = (regs[3] * 0.011f + 0.2f) * 100.0f;  // count * 45A / 4096 + offset;
 
 		/* this requires integration over time - not currently implemented */
 		battery_status.discharged_mah = -1.0f;
