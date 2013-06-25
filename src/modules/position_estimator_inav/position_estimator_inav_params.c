@@ -1,10 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,16 +32,41 @@
  *
  ****************************************************************************/
 
-/**
- * @file multirotor_position_control.h
- * Definition of the position control for a multirotor VTOL
+/*
+ * @file position_estimator_inav_params.c
+ *
+ * Parameters for position_estimator_inav
  */
 
-// #ifndef POSITION_CONTROL_H_
-// #define POSITION_CONTROL_H_
+#include "position_estimator_inav_params.h"
 
-// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
-//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
-//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+PARAM_DEFINE_INT32(INAV_USE_GPS, 1);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_BARO, 1.0f);
+PARAM_DEFINE_FLOAT(INAV_W_ALT_ACC, 50.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_P, 4.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_GPS_V, 0.0f);
+PARAM_DEFINE_FLOAT(INAV_W_POS_ACC, 10.0f);
 
-// #endif /* POSITION_CONTROL_H_ */
+int parameters_init(struct position_estimator_inav_param_handles *h)
+{
+	h->use_gps = param_find("INAV_USE_GPS");
+	h->w_alt_baro = param_find("INAV_W_ALT_BARO");
+	h->w_alt_acc = param_find("INAV_W_ALT_ACC");
+	h->w_pos_gps_p = param_find("INAV_W_POS_GPS_P");
+	h->w_pos_gps_v = param_find("INAV_W_POS_GPS_V");
+	h->w_pos_acc = param_find("INAV_W_POS_ACC");
+
+	return OK;
+}
+
+int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p)
+{
+	param_get(h->use_gps, &(p->use_gps));
+	param_get(h->w_alt_baro, &(p->w_alt_baro));
+	param_get(h->w_alt_acc, &(p->w_alt_acc));
+	param_get(h->w_pos_gps_p, &(p->w_pos_gps_p));
+	param_get(h->w_pos_gps_v, &(p->w_pos_gps_v));
+	param_get(h->w_pos_acc, &(p->w_pos_acc));
+
+	return OK;
+}

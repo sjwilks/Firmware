@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2013 Anton Babushkin. All rights reserved.
+ *   Author: 	Anton Babushkin	<rk3dov@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,59 +33,39 @@
  ****************************************************************************/
 
 /*
- * @file multirotor_position_control_params.h
- * 
- * Parameters for position controller
+ * @file position_estimator_inav_params.h
+ *
+ * Parameters for Position Estimator
  */
 
 #include <systemlib/param/param.h>
 
-struct multirotor_position_control_params {
-	float thr_min;
-	float thr_max;
-	float alt_p;
-	float alt_i;
-	float alt_d;
-	float alt_rate_max;
-	float pos_p;
-	float pos_i;
-	float pos_d;
-	float pos_rate_max;
-	float slope_max;
-	int hard;
-
-	float rc_scale_pitch;
-	float rc_scale_roll;
-	float rc_scale_yaw;
+struct position_estimator_inav_params {
+	int use_gps;
+	float w_alt_baro;
+	float w_alt_acc;
+	float w_pos_gps_p;
+	float w_pos_gps_v;
+	float w_pos_acc;
 };
 
-struct multirotor_position_control_param_handles {
-	param_t thr_min;
-	param_t thr_max;
-	param_t alt_p;
-	param_t alt_i;
-	param_t alt_d;
-	param_t alt_rate_max;
-	param_t pos_p;
-	param_t pos_i;
-	param_t pos_d;
-	param_t pos_rate_max;
-	param_t slope_max;
-	param_t hard;
-
-	param_t rc_scale_pitch;
-	param_t rc_scale_roll;
-	param_t rc_scale_yaw;
+struct position_estimator_inav_param_handles {
+	param_t use_gps;
+	param_t w_alt_baro;
+	param_t w_alt_acc;
+	param_t w_pos_gps_p;
+	param_t w_pos_gps_v;
+	param_t w_pos_acc;
 };
 
 /**
  * Initialize all parameter handles and values
  *
  */
-int parameters_init(struct multirotor_position_control_param_handles *h);
+int parameters_init(struct position_estimator_inav_param_handles *h);
 
 /**
  * Update all parameters
  *
  */
-int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p);
+int parameters_update(const struct position_estimator_inav_param_handles *h, struct position_estimator_inav_params *p);
