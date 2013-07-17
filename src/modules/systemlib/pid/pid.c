@@ -1,10 +1,11 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Laurens Mackay <mackayl@student.ethz.ch>
+ *           Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +38,14 @@
 
 /**
  * @file pid.c
- * Implementation of generic PID control interface
+ *
+ * Implementation of generic PID control interface.
+ *
+ * @author Laurens Mackay <mackayl@student.ethz.ch>
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #include "pid.h"
@@ -160,8 +168,8 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// Calculate the error integral and check for saturation
 	i = pid->integral + (error * dt);
 
-	if (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit ||
-	    fabsf(i) > pid->intmax) {
+	if ((pid->limit != 0.0f && (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit)) ||
+			fabsf(i) > pid->intmax) {
 		i = pid->integral;		// If saturated then do not update integral value
 		pid->saturated = 1;
 
@@ -178,11 +186,13 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
 
 	if (isfinite(output)) {
-		if (output > pid->limit) {
-			output = pid->limit;
+		if (pid->limit != 0.0f) {
+			if (output > pid->limit) {
+				output = pid->limit;
 
-		} else if (output < -pid->limit) {
-			output = -pid->limit;
+			} else if (output < -pid->limit) {
+				output = -pid->limit;
+			}
 		}
 
 		pid->last_output = output;

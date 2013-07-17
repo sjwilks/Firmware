@@ -282,7 +282,7 @@ void tune_error(void)
 
 void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 {
-	if (current_status.offboard_control_signal_lost) {
+	if (current_status.rc_signal_lost) {
 		mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
 		return;
 	}
@@ -1200,7 +1200,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		daemon_task = task_spawn("commander",
+		daemon_task = task_spawn_cmd("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 40,
 					 3000,
@@ -1857,8 +1857,10 @@ int commander_thread_main(int argc, char *argv[])
 				     (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
 				     (current_status.system_type == VEHICLE_TYPE_OCTOROTOR)
 				    ) &&
-				    ((sp_man.yaw < -STICK_ON_OFF_LIMIT)) &&
-				    (sp_man.throttle < STICK_THRUST_RANGE * 0.2f)) {
+					current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+				    sp_man.yaw < -STICK_ON_OFF_LIMIT &&
+				    sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;
@@ -1870,7 +1872,10 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* check if left stick is in lower right position --> arm */
-				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE * 0.2f) {
+				if (current_status.flag_control_manual_enabled &&
+					current_status.manual_sas_mode == VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS &&
+					sp_man.yaw > STICK_ON_OFF_LIMIT &&
+					sp_man.throttle < STICK_THRUST_RANGE * 0.1f) {
 					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
 						update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
 						stick_on_counter = 0;

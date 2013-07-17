@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <rk3dov@gmail.com>
+ *   Author: Anton Babushkin <anton.babushkin@me.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
  *
  * Log messages and structures definition.
  *
- * @author Anton Babushkin <rk3dov@gmail.com>
+ * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #ifndef SDLOG2_MESSAGES_H_
@@ -149,15 +149,15 @@ struct log_ATTC_s {
 /* --- STAT - VEHICLE STATE --- */
 #define LOG_STAT_MSG 10
 struct log_STAT_s {
-	unsigned char state;
-	unsigned char flight_mode;
-	unsigned char manual_control_mode;
-	unsigned char manual_sas_mode;
-	unsigned char armed;
+	uint8_t state;
+	uint8_t flight_mode;
+	uint8_t manual_control_mode;
+	uint8_t manual_sas_mode;
+	uint8_t armed;
 	float battery_voltage;
 	float battery_current;
 	float battery_remaining;
-	unsigned char battery_warning;
+	uint8_t battery_warning;
 };
 
 /* --- RC - RC INPUT CHANNELS --- */
@@ -187,8 +187,20 @@ struct log_ARSP_s {
 	float yaw_rate_sp;
 };
 
-/* --- GPOS - GLOBAL POSITION --- */
-#define LOG_GPOS_MSG 15
+/* --- FLOW - OPTICAL FLOW --- */
+#define LOG_FLOW_MSG 15
+struct log_FLOW_s {
+	int16_t flow_raw_x;
+	int16_t flow_raw_y;
+	float flow_comp_x;
+	float flow_comp_y;
+	float distance;
+	uint8_t	quality;
+	uint8_t sensor_id;
+};
+
+/* --- GPOS - GLOBAL POSITION ESTIMATE --- */
+#define LOG_GPOS_MSG 16
 struct log_GPOS_s {
 	int32_t lat;
 	int32_t lon;
@@ -196,7 +208,48 @@ struct log_GPOS_s {
 	float vel_n;
 	float vel_e;
 	float vel_d;
-	float hdg;
+};
+
+/* --- GPSP - GLOBAL POSITION SETPOINT --- */
+#define LOG_GPSP_MSG 17
+struct log_GPSP_s {
+	uint8_t altitude_is_relative;
+	int32_t lat;
+	int32_t lon;
+	float altitude;
+	float yaw;
+	float loiter_radius;
+	int8_t loiter_direction;
+	uint8_t nav_cmd;
+	float param1;
+	float param2;
+	float param3;
+	float param4;
+};
+
+/* --- ESC - ESC STATE --- */
+#define LOG_ESC_MSG 18
+struct log_ESC_s {
+	uint16_t counter;
+	uint8_t esc_count;
+	uint8_t esc_connectiontype;
+	uint8_t esc_num;
+	uint16_t esc_address;
+	uint16_t esc_version;
+	uint16_t esc_voltage;
+	uint16_t esc_current;
+	uint16_t esc_rpm;
+	uint16_t esc_temperature;
+	float    esc_setpoint;
+	uint16_t esc_setpoint_raw;
+};
+
+/* --- GVSP - GLOBAL VELOCITY SETPOINT --- */
+#define LOG_GVSP_MSG 19
+struct log_GVSP_s {
+	float vx;
+	float vy;
+	float vz;
 };
 
 #pragma pack(pop)
@@ -218,7 +271,11 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(OUT0, "ffffffff", "Out0,Out1,Out2,Out3,Out4,Out5,Out6,Out7"),
 	LOG_FORMAT(AIRS, "ff", "IndSpeed,TrueSpeed"),
 	LOG_FORMAT(ARSP, "fff", "RollRateSP,PitchRateSP,YawRateSP"),
-	LOG_FORMAT(GPOS, "LLfffff", "Lat,Lon,Alt,VelN,VelE,VelD,Heading"),
+	LOG_FORMAT(FLOW, "hhfffBB", "RawX,RawY,CompX,CompY,Dist,Q,SensID"),
+	LOG_FORMAT(GPOS, "LLffff", "Lat,Lon,Alt,VelN,VelE,VelD"),
+	LOG_FORMAT(GPSP, "BLLfffbBffff", "AltRel,Lat,Lon,Alt,Yaw,LoiterR,LoiterDir,NavCmd,P1,P2,P3,P4"),
+	LOG_FORMAT(ESC, "HBBBHHHHHHfH", "Counter,NumESC,Conn,No,Version,Adr,Volt,Amp,RPM,Temp,SetP,SetPRAW"),
+	LOG_FORMAT(GVSP, "fff", "VX,VY,VZ"),
 };
 
 static const int log_formats_num = sizeof(log_formats) / sizeof(struct log_format_s);

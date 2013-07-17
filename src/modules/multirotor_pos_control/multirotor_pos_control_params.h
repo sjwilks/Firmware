@@ -44,16 +44,19 @@
 struct multirotor_position_control_params {
 	float thr_min;
 	float thr_max;
-	float alt_p;
-	float alt_i;
-	float alt_d;
-	float alt_rate_max;
-	float pos_p;
-	float pos_i;
-	float pos_d;
-	float pos_rate_max;
+	float z_p;
+	float z_d;
+	float z_vel_p;
+	float z_vel_i;
+	float z_vel_d;
+	float z_vel_max;
+	float xy_p;
+	float xy_d;
+	float xy_vel_p;
+	float xy_vel_i;
+	float xy_vel_d;
+	float xy_vel_max;
 	float slope_max;
-	int hard;
 
 	float rc_scale_pitch;
 	float rc_scale_roll;
@@ -63,16 +66,19 @@ struct multirotor_position_control_params {
 struct multirotor_position_control_param_handles {
 	param_t thr_min;
 	param_t thr_max;
-	param_t alt_p;
-	param_t alt_i;
-	param_t alt_d;
-	param_t alt_rate_max;
-	param_t pos_p;
-	param_t pos_i;
-	param_t pos_d;
-	param_t pos_rate_max;
+	param_t z_p;
+	param_t z_d;
+	param_t z_vel_p;
+	param_t z_vel_i;
+	param_t z_vel_d;
+	param_t z_vel_max;
+	param_t xy_p;
+	param_t xy_d;
+	param_t xy_vel_p;
+	param_t xy_vel_i;
+	param_t xy_vel_d;
+	param_t xy_vel_max;
 	param_t slope_max;
-	param_t hard;
 
 	param_t rc_scale_pitch;
 	param_t rc_scale_roll;

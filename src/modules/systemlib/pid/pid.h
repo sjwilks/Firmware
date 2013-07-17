@@ -1,10 +1,11 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2013 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Anton Babushkin <anton.babushkin@me.com>
+ *   Author: Laurens Mackay <mackayl@student.ethz.ch>
+ *           Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           Anton Babushkin <anton.babushkin@me.com>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,13 +38,22 @@
 
 /**
  * @file pid.h
- * Definition of generic PID control interface
+ *
+ * Definition of generic PID control interface.
+ *
+ * @author Laurens Mackay <mackayl@student.ethz.ch>
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author Julian Oes <joes@student.ethz.ch>
  */
 
 #ifndef PID_H_
 #define PID_H_
 
 #include <stdint.h>
+
+__BEGIN_DECLS
 
 /* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
  * val_dot in pid_calculate() will be ignored */
@@ -79,5 +89,6 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 
 __EXPORT void pid_reset_integral(PID_t *pid);
 
+__END_DECLS
 
 #endif /* PID_H_ */
