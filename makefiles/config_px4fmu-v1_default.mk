@@ -85,6 +85,11 @@ MODULES		+= examples/flow_speed_control
 MODULES		+= modules/sdlog2
 
 #
+# LCD
+#
+MODULES		+= modules/lcd
+
+#
 # Library modules
 #
 MODULES		+= modules/systemlib
