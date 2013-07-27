@@ -375,6 +375,8 @@ test()
 		warnx("diff pressure: %d pa", report.differential_pressure_pa);
 	}
 
+	close(fd);
+
 	errx(0, "PASS");
 }
 
