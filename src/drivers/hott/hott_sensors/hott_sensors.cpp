@@ -139,11 +139,14 @@ hott_sensors_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
+	Messages* msgs = new Messages();
+
 	const char *device = DEFAULT_UART;
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
+		// Set the UART device
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
 			if (argc > i + 1) {
 				device = argv[i + 1];
 
@@ -151,6 +154,11 @@ hott_sensors_thread_main(int argc, char *argv[])
 				thread_running = false;
 				errx(1, "missing parameter to -d\n%s", commandline_usage);
 			}
+		}
+		// Enable the reporting of voltage and current.
+		if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--powermon") == 0) {
+			warnx("Enabling power monitoring");
+			msgs->enable_power_monitoring(true);
 		}
 	}
 
@@ -161,14 +169,12 @@ hott_sensors_thread_main(int argc, char *argv[])
 		thread_running = false;
 	}
 
-	init_pub_messages();
-
 	uint8_t buffer[MAX_MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
 	uint8_t id = 0;
 	while (!thread_should_exit) {
 		// Currently we only support a General Air Module sensor.
-		build_gam_request(&buffer[0], &size);
+		msgs->build_gam_request(&buffer[0], &size);
 		send_poll(uart, buffer, size);
 
 		// The sensor will need a little time before it starts sending.
@@ -178,7 +184,7 @@ hott_sensors_thread_main(int argc, char *argv[])
 
 		// Determine which moduel sent it and process accordingly.
 		if (id == GAM_SENSOR_ID) {
-			publish_gam_message(buffer);
+			msgs->publish_gam_message(buffer);
 		} else {
 			warnx("Unknown sensor ID: %d", id);
 		}

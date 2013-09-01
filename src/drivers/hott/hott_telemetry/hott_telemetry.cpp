@@ -172,7 +172,8 @@ hott_telemetry_thread_main(int argc, char *argv[])
 		thread_running = false;
 	}
 
-	init_sub_messages();
+	Messages* msgs = new Messages();
+	msgs->init_sub_messages();
 
 	uint8_t buffer[MAX_MESSAGE_BUFFER_SIZE];
 	size_t size = 0;
@@ -188,13 +189,13 @@ hott_telemetry_thread_main(int argc, char *argv[])
 
 			switch (id) {
 			case EAM_SENSOR_ID:
-				build_eam_response(buffer, &size);
+				msgs->build_eam_response(buffer, &size);
 				break;
 			case GAM_SENSOR_ID:
-				build_gam_response(buffer, &size);
+				msgs->build_gam_response(buffer, &size);
 				break;
 			case GPS_SENSOR_ID:
-				build_gps_response(buffer, &size);
+				msgs->build_gps_response(buffer, &size);
 				break;
 
 			default:

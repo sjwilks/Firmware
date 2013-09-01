@@ -39,10 +39,11 @@
 
 #include "messages.h"
 
+#include <drivers/drv_hrt.h>
+#include <geo/geo.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <geo/geo.h>
 #include <unistd.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
@@ -54,22 +55,29 @@
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
-static int _battery_sub = -1;
-static int _gps_sub = -1;
-static int _home_sub = -1;
-static int _sensor_sub = -1;
-static int _airspeed_sub = -1;
-static int _esc_sub = -1;
 
-static orb_advert_t _esc_pub;
-struct esc_status_s _esc;
+Messages::Messages() :
+	_battery_sub(-1),
+	_gps_sub(-1),
+	_home_sub(-1),
+	_sensor_sub(-1),
+	_airspeed_sub(-1),
+	_esc_sub(-1),
+	_home_position_set(false),
+	_home_lat(0.0d),
+	_home_lon(0.0d),
+	_enable_power_monitoring(false),
+	_battery_mamphour_total(0.0f),
+	_battery_last_timestamp(0)
+{
+}
 
-static bool _home_position_set = false;
-static double _home_lat = 0.0d;
-static double _home_lon = 0.0d;
+Messages::~Messages()
+{
+}
 
 void 
-init_sub_messages(void)
+Messages::init_sub_messages(void)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -79,15 +87,8 @@ init_sub_messages(void)
 	_esc_sub = orb_subscribe(ORB_ID(esc_status));
 }
 
-void 
-init_pub_messages(void)
-{
-	memset(&_esc, 0, sizeof(_esc));
-	_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
-}
-
 void
-build_gam_request(uint8_t *buffer, size_t *size)
+Messages::build_gam_request(uint8_t *buffer, size_t *size)
 {
 	struct gam_module_poll_msg msg;
 	*size = sizeof(msg);
@@ -100,33 +101,58 @@ build_gam_request(uint8_t *buffer, size_t *size)
 }
 
 void
-publish_gam_message(const uint8_t *buffer)
+Messages::publish_gam_message(const uint8_t *buffer)
 {
 	struct gam_module_msg msg;
 	size_t size = sizeof(msg);
 	memset(&msg, 0, size);
 	memcpy(&msg, buffer, size);
 
-	/* announce the esc if needed, just publish else */
-	if (_esc_pub > 0) {
-		orb_publish(ORB_ID(esc_status), _esc_pub, &_esc);
-	} else {
-		_esc_pub = orb_advertise(ORB_ID(esc_status), &_esc);
-	}
+	struct esc_status_s esc;
 
 	// Publish it.
-	_esc.esc_count = 1;
-	_esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
+	esc.esc_count = 1;
+	esc.esc_connectiontype = ESC_CONNECTION_TYPE_PPM;
 
-	_esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
-	_esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
-	_esc.esc[0].esc_temperature = msg.temperature1 - 20; 
-	_esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
-	_esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
+	esc.esc[0].esc_vendor = ESC_VENDOR_GRAUPNER_HOTT;
+	esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
+	esc.esc[0].esc_temperature = msg.temperature1 - 20; 
+	esc.esc[0].esc_voltage = (uint16_t)((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff));
+	esc.esc[0].esc_current = (uint16_t)((msg.current_H << 8) | (msg.current_L & 0xff));
+
+	/* announce the esc if needed, just publish else */
+	if (_esc_pub > 0) {
+		orb_publish(ORB_ID(esc_status), _esc_pub, &esc);
+	} else {
+		_esc_pub = orb_advertise(ORB_ID(esc_status), &esc);
+	}
+
+	if (_enable_power_monitoring) {
+		battery_status_s battery_status;
+
+		battery_status.timestamp = hrt_absolute_time();
+		battery_status.voltage_v = esc.esc[0].esc_voltage;
+		battery_status.current_a = esc.esc[0].esc_current;
+
+		// Integrate battery over time to get total mAh used
+		if (_battery_last_timestamp != 0) {
+			_battery_mamphour_total += battery_status.current_a * 
+				(battery_status.timestamp - _battery_last_timestamp) * 1.0e-3f / 3600;
+		}
+		battery_status.discharged_mah = _battery_mamphour_total;
+		_battery_last_timestamp = battery_status.timestamp;
+
+		/* lazily publish the battery voltage */
+		if (_to_battery > 0) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
+		}
+	}
 }
 
 void 
-build_eam_response(uint8_t *buffer, size_t *size)
+Messages::build_eam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
@@ -169,7 +195,7 @@ build_eam_response(uint8_t *buffer, size_t *size)
 }
 
 void 
-build_gam_response(uint8_t *buffer, size_t *size)
+Messages::build_gam_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the ESC Status values */
 	struct esc_status_s esc;
@@ -204,7 +230,7 @@ build_gam_response(uint8_t *buffer, size_t *size)
 }
 
 void 
-build_gps_response(uint8_t *buffer, size_t *size)
+Messages::build_gps_response(uint8_t *buffer, size_t *size)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
@@ -317,8 +343,12 @@ build_gps_response(uint8_t *buffer, size_t *size)
 	memcpy(buffer, &msg, *size);
 }
 
+void Messages::enable_power_monitoring(bool enable_power_monitoring) {
+	_enable_power_monitoring = enable_power_monitoring;
+}
+
 void
-convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec)
+Messages::convert_to_degrees_minutes_seconds(double val, int *deg, int *min, int *sec)
 {
 	*deg = (int)val;
 
