@@ -162,6 +162,12 @@ public:
 	int      		set_update_rate(int rate);
 
 	/**
+	* Prevents the IO from reporting voltage and current measurements. This allows
+	* an alternative system to take care of this (ie: an ESC).
+	*/
+	void			disable_power_monitoring();
+
+	/**
 	* Set the battery current scaling and bias
 	*
 	* @param[in] amp_per_volt
@@ -267,6 +273,7 @@ private:
 
 	bool			_primary_pwm_device;	///<true if we are the default PWM output
 
+	bool			_enable_power_monitoring;	///<ctivate monitoring and reporting of power supply values
 	float			_battery_amp_per_volt;	///<current sensor amps/volt
 	float			_battery_amp_bias;	///<current sensor bias
 	float			_battery_mamphour_total;///<amp hours consumed so far
@@ -446,6 +453,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_to_battery(0),
 	_to_safety(0),
 	_primary_pwm_device(false),
+	_enable_power_monitoring(true),
 	_battery_amp_per_volt(90.0f/5.0f), // this matches the 3DR current sensor
 	_battery_amp_bias(0),
 	_battery_mamphour_total(0),
@@ -1170,8 +1178,8 @@ PX4IO::io_get_status()
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
 	
-	/* only publish if battery has a valid minimum voltage */
-	if (regs[2] > 3300) {
+	/* only publish if battery has a valid minimum voltage and we monitoring and reporting is active */
+	if (_enable_power_monitoring && regs[2] > 3300) {
 		battery_status_s	battery_status;
 
 		battery_status.timestamp = hrt_absolute_time();
@@ -1869,6 +1877,12 @@ PX4IO::set_update_rate(int rate)
 }
 
 void
+PX4IO::disable_power_monitoring()
+{
+	_enable_power_monitoring = false;
+}
+
+void
 PX4IO::set_battery_current_scaling(float amp_per_volt, float amp_bias)
 {
 	_battery_amp_per_volt = amp_per_volt;
@@ -2215,6 +2229,14 @@ px4io_main(int argc, char *argv[])
 		} else {
 			errx(1, "missing argument (50 - 400 Hz)");
 			return 1;
+		}
+		exit(0);
+	}
+
+
+	if (!strcmp(argv[1], "nopowermon")) {
+		if ((argc > 3)) {
+			g_dev->disable_power_monitoring();
 		}
 		exit(0);
 	}
