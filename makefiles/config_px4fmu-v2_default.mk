@@ -31,6 +31,7 @@ MODULES		+= drivers/hil
 MODULES		+= drivers/hott/hott_telemetry
 MODULES		+= drivers/hott/hott_sensors
 MODULES		+= drivers/blinkm
+MODULES		+= drivers/roboclaw
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
@@ -78,7 +79,7 @@ MODULES		+= examples/flow_position_estimator
 #
 # Vehicle Control
 #
-#MODULES		+= modules/segway # XXX needs state machine update
+#MODULES		+= modules/segway # XXX Needs GCC 4.7 fix
 MODULES		+= modules/fw_pos_control_l1
 MODULES		+= modules/fw_att_control
 MODULES		+= modules/multirotor_att_control
@@ -112,6 +113,7 @@ MODULES		+= lib/mathlib/math/filter
 MODULES		+= lib/ecl
 MODULES		+= lib/external_lgpl
 MODULES		+= lib/geo
+MODULES		+= lib/conversion
 
 #
 # Demo apps
@@ -119,7 +121,7 @@ MODULES		+= lib/geo
 #MODULES		+= examples/math_demo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-#MODULES		+= examples/px4_simple_app
+MODULES		+= examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/daemon
@@ -128,6 +130,13 @@ MODULES		+= lib/geo
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/debug_values
 #MODULES		+= examples/px4_mavlink_debug
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/example_fixedwing_control
+#MODULES			+= examples/fixedwing_control
+
+# Hardware test
+#MODULES			+= examples/hwtest
 
 #
 # Transitional support - add commands from the NuttX export archive.
