@@ -34,6 +34,7 @@ MODULES		+= drivers/blinkm
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/sensory_io
 MODULES		+= modules/sensors
 
 # Needs to be burned to the ground and re-written; for now,

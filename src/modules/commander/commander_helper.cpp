@@ -55,6 +55,7 @@
 #include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_led.h>
 #include <drivers/drv_rgbled.h>
+#include <drivers/drv_sensory_io.h>
 
 #include "commander_helper.h"
 
@@ -81,6 +82,7 @@ bool is_rotary_wing(const struct vehicle_status_s *current_status)
 }
 
 static int buzzer;
+static int sensory_io;
 static hrt_abstime blink_msg_end;
 
 int buzzer_init()
@@ -92,17 +94,26 @@ int buzzer_init()
 		return ERROR;
 	}
 
+	sensory_io = open(SENSORY_IO_DEVICE_PATH, O_WRONLY);
+
+	if (sensory_io < 0) {
+		warnx("Sensory IO: open fail\n");
+		return ERROR;
+	}	
+
 	return OK;
 }
 
 void buzzer_deinit()
 {
 	close(buzzer);
+	close(sensory_io);
 }
 
 void tune_error()
 {
 	ioctl(buzzer, TONE_SET_ALARM, TONE_ERROR_TUNE);
+	ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_ERROR_MSG);
 }
 
 void tune_positive()
@@ -111,6 +122,7 @@ void tune_positive()
 	rgbled_set_color(RGBLED_COLOR_GREEN);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_POSITIVE_TUNE);
+	ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_NOTIFY_POSITIVE_MSG);
 }
 
 void tune_neutral()
@@ -119,6 +131,7 @@ void tune_neutral()
 	rgbled_set_color(RGBLED_COLOR_WHITE);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEUTRAL_TUNE);
+	ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_NOTIFY_NEUTRAL_MSG);
 }
 
 void tune_negative()
@@ -127,21 +140,25 @@ void tune_negative()
 	rgbled_set_color(RGBLED_COLOR_RED);
 	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
 	ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
+	ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_NOTIFY_NEGATIVE_MSG);
 }
 
 int tune_arm()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, TONE_ARMING_WARNING_TUNE);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_ARMING_WARNING_TUNE) &&
+	       ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_ARMING_WARNING_MSG);
 }
 
 int tune_low_bat()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_SLOW_TUNE);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_SLOW_TUNE) &&
+	       ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_BATTERY_WARNING_MSG);
 }
 
 int tune_critical_bat()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_FAST_TUNE);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_BATTERY_WARNING_FAST_TUNE) &&
+	       ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_BATTERY_CRITICAL_MSG);
 }
 
 void tune_stop()

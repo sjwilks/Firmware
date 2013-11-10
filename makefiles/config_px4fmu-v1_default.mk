@@ -37,6 +37,7 @@ MODULES		+= drivers/md25
 MODULES		+= drivers/airspeed
 MODULES		+= drivers/ets_airspeed
 MODULES		+= drivers/meas_airspeed
+MODULES		+= drivers/sensory_io
 MODULES		+= modules/sensors
 
 #
@@ -91,6 +92,11 @@ MODULES		+= examples/flow_speed_control
 # Logging
 #
 MODULES		+= modules/sdlog2
+
+#
+# Speech
+#
+MODULES 	+= modules/speech
 
 #
 # Unit tests
