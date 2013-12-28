@@ -68,7 +68,7 @@ EMIC2::EMIC2(const char *uart_path) :
 	_messages[SENSORY_ERROR_MSG] = "Error.";
 	_messages[SENSORY_NOTIFY_POSITIVE_MSG] = "Done.";
 	_messages[SENSORY_NOTIFY_NEUTRAL_MSG] = "OK.";
-	_messages[SENSORY_NOTIFY_NEGATIVE_MSG] = "No.";
+	_messages[SENSORY_NOTIFY_NEGATIVE_MSG] = "Press safety switch.";
 	_messages[SENSORY_ARMING_WARNING_MSG] = "Arming. Stand clear.";
 	_messages[SENSORY_BATTERY_WARNING_MSG] = "Low battery voltage.";
 	_messages[SENSORY_BATTERY_CRITICAL_MSG] = "Critical battery. Panic.";
@@ -121,6 +121,8 @@ void
 EMIC2::task_main()
 {
 	log("EMIC2::task_main starting");
+	sleep(5); // TEMPORARY - REMOVE
+
 	_serial_fd = ::open(_port, O_RDWR);
 	set_baudrate(EMIC2_BAUD_RATE);
 
@@ -212,7 +214,7 @@ EMIC2::send(const char *msg, size_t size)
 //	warnx("SENDING: %s", msg);
 	// Try and interrupt the current message
 	if (_talking) {
-		interrupt();
+		//interrupt();
 	}
 	_talking = true;
 	send_data(msg, size);

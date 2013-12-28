@@ -145,8 +145,8 @@ void tune_negative()
 
 int tune_arm()
 {
-	return ioctl(buzzer, TONE_SET_ALARM, TONE_ARMING_WARNING_TUNE) &&
-	       ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_ARMING_WARNING_MSG);
+	ioctl(sensory_io, SENSORY_IO_SET_MSG, SENSORY_ARMING_WARNING_MSG);
+	return ioctl(buzzer, TONE_SET_ALARM, TONE_ARMING_WARNING_TUNE);
 }
 
 int tune_low_bat()
