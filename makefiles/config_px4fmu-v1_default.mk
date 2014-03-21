@@ -67,6 +67,7 @@ MODULES		+= modules/navigator
 MODULES		+= modules/mavlink
 MODULES		+= modules/mavlink_onboard
 MODULES		+= modules/gpio_led
+MODULES		+= modules/gpio_cam
 
 #
 # Estimation modules (EKF/ SO3 / other filters)
