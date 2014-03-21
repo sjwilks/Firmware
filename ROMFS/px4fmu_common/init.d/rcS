@@ -3,12 +3,10 @@
 # PX4FMU startup script.
 
 #
-# Default to auto-start mode.  An init script on the microSD card
-# can change this to prevent automatic startup of the flight script.
+# Default to auto-start mode.
 #
 set MODE autostart
 
-set LOG_FILE /fs/microsd/bootlog.txt
 set RC_FILE /fs/microsd/etc/rc.txt
 set CONFIG_FILE /fs/microsd/etc/config.txt
 set EXTRAS_FILE /fs/microsd/etc/extras.txt
@@ -21,10 +19,12 @@ set TUNE_OUT_ERROR ML<<CP4CP4CP4CP4CP4
 echo "[init] Looking for microSD..."
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
+	set LOG_FILE /fs/microsd/bootlog.txt
 	echo "[init] microSD card mounted at /fs/microsd"
 	# Start playing the startup tune
 	tone_alarm start
 else
+	set LOG_FILE /dev/null
 	echo "[init] No microSD card found"
 	# Play SOS
 	tone_alarm error
@@ -108,7 +108,6 @@ then
 	set HIL no
 	set VEHICLE_TYPE none
 	set MIXER none
-	set USE_IO yes
 	set OUTPUT_MODE none
 	set PWM_OUTPUTS none
 	set PWM_RATE none
@@ -117,7 +116,10 @@ then
 	set PWM_MAX none
 	set MKBLCTRL_MODE none
 	set FMU_MODE pwm
+	set MAVLINK_FLAGS default
+	set EXIT_ON_END no
 	set MAV_TYPE none
+	set LOAD_DEFAULT_APPS yes
 	
 	#
 	# Set DO_AUTOCONFIG flag to use it in AUTOSTART scripts
@@ -127,6 +129,16 @@ then
 		set DO_AUTOCONFIG yes
 	else
 		set DO_AUTOCONFIG no
+	fi
+	
+	#
+	# Set USE_IO flag
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	else
+		set USE_IO no
 	fi
 		
 	#
@@ -180,8 +192,8 @@ then
 	
 			set IO_PRESENT yes
 		else
-			echo "[init] PX4IO CRC failure, trying to update"
-			echo "PX4IO CRC failure" >> $LOG_FILE
+			echo "[init] Trying to update"
+			echo "PX4IO Trying to update" >> $LOG_FILE
 			
 			tone_alarm MLL32CP8MB
 			
@@ -198,10 +210,12 @@ then
 				else
 					echo "[init] ERROR: PX4IO update failed"
 					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm $TUNE_OUT_ERROR
 				fi
 			else
 				echo "[init] ERROR: PX4IO update failed"
 				echo "PX4IO update failed" >> $LOG_FILE
+				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
 		
@@ -236,6 +250,11 @@ then
 		then
 			set FMU_MODE serial
 		fi
+	fi
+
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		set FMU_MODE gpio_serial
 	fi
 
 	if [ $HIL == yes ]
@@ -275,9 +294,9 @@ then
 				tone_alarm $TUNE_OUT_ERROR
 			fi
 		fi
-		if [ $OUTPUT_MODE == fmu ]
+		if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == ardrone ]
 		then
-			echo "[init] Use FMU PWM as primary output"
+			echo "[init] Use FMU as primary output"
 			if fmu mode_$FMU_MODE
 			then
 				echo "[init] FMU mode_$FMU_MODE started"
@@ -292,7 +311,7 @@ then
 				then
 					set TTYS1_BUSY yes
 				fi
-				if [ $FMU_MODE == pwm_gpio ]
+				if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 				then
 					set TTYS1_BUSY yes
 				fi
@@ -323,7 +342,7 @@ then
 		if [ $OUTPUT_MODE == hil ]
 		then
 			echo "[init] Use HIL as primary output"
-			if hil mode_pwm
+			if hil mode_port2_pwm8
 			then
 				echo "[init] HIL output started"
 			else
@@ -349,7 +368,7 @@ then
 				fi
 			fi
 		else
-			if [ $OUTPUT_MODE != fmu ]
+			if [ $OUTPUT_MODE != fmu -a $OUTPUT_MODE != ardrone ]
 			then
 				if fmu mode_$FMU_MODE
 				then
@@ -365,7 +384,7 @@ then
 					then
 						set TTYS1_BUSY yes
 					fi
-					if [ $FMU_MODE == pwm_gpio ]
+					if [ $FMU_MODE == pwm_gpio -o $OUTPUT_MODE == ardrone ]
 					then
 						set TTYS1_BUSY yes
 					fi
@@ -377,28 +396,44 @@ then
 	#
 	# MAVLink
 	#
-	set EXIT_ON_END no
 	
-	if [ $HIL == yes ]
+	if [ $MAVLINK_FLAGS == default ]
 	then
-		sleep 1
-		mavlink start -b 230400 -d /dev/ttyACM0 
-		usleep 5000
-	else
-		if [ $TTYS1_BUSY == yes ]
+		if [ $HIL == yes ]
 		then
-			# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
-			mavlink start -d /dev/ttyS0
+			sleep 1
+			set MAVLINK_FLAGS "-r 10000 -d /dev/ttyACM0"
 			usleep 5000
-			
-			# Exit from nsh to free port for mavlink
-			set EXIT_ON_END yes
 		else
-			# Start MAVLink on default port: ttyS1
-			mavlink start
-			usleep 5000
+			# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
+			if [ $TTYS1_BUSY == yes ]
+			then
+				# Start MAVLink on ttyS0, because FMU ttyS1 pins configured as something else
+				set MAVLINK_FLAGS "-r 1000 -d /dev/ttyS0"
+				usleep 5000
+				
+				# Exit from nsh to free port for mavlink
+				set EXIT_ON_END yes
+			else
+				# Start MAVLink on default port: ttyS1
+				set MAVLINK_FLAGS "-r 1000"
+				usleep 5000
+			fi
 		fi
 	fi
+
+	mavlink start $MAVLINK_FLAGS
+	usleep 5000
+	
+	#
+	# Start the datamanager
+	#
+	dataman start
+	
+	#
+	# Start the navigator
+	#
+	navigator start
 	
 	#
 	# Sensors, Logging, GPS
@@ -415,6 +450,14 @@ then
 		gps start
 	fi
 	
+	#
+	# Start up ARDrone Motor interface
+	#
+	if [ $OUTPUT_MODE == ardrone ]
+	then
+		ardrone_interface start -d /dev/ttyS1
+	fi
+
 	#
 	# Fixed wing setup
 	#
@@ -440,7 +483,10 @@ then
 		sh /etc/init.d/rc.interface
 		
 		# Start standard fixedwing apps
-		sh /etc/init.d/rc.fw_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.fw_apps
+		fi
 	fi
 
 	#
@@ -452,37 +498,54 @@ then
 
 		if [ $MIXER == none ]
 		then
-			# Set default mixer for multicopter if not defined
-			set MIXER quad_x
+			echo "Default mixer for multicopter not defined"
 		fi
 
 		if [ $MAV_TYPE == none ]
 		then
-			# Use MAV_TYPE = 2 (quadcopter) if not defined
-			set MAV_TYPE 2
-			
 			# Use mixer to detect vehicle type
-			if [ $MIXER == FMU_hex_x -o $MIXER == FMU_hex_+ ]
+			if [ $MIXER == FMU_quad_x -o $MIXER == FMU_quad_+ ]
 			then
-				param set MAV_TYPE 13
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == FMU_quad_w ]
+			then
+				set MAV_TYPE 2
+			fi
+			if [ $MIXER == FMU_hexa_x -o $MIXER == FMU_hexa_+ ]
+			then
+				set MAV_TYPE 13
+			fi
+			if [ $MIXER == hexa_cox ]
+			then
+				set MAV_TYPE 13
 			fi
 			if [ $MIXER == FMU_octo_x -o $MIXER == FMU_octo_+ ]
 			then
-				param set MAV_TYPE 14
+				set MAV_TYPE 14
 			fi
 			if [ $MIXER == FMU_octo_cox ]
 			then
-				param set MAV_TYPE 14
+				set MAV_TYPE 14
 			fi
 		fi
-
-	    param set MAV_TYPE $MAV_TYPE
+		
+		# Still no MAV_TYPE found
+		if [ $MAV_TYPE == none ]
+		then
+			echo "Unknown MAV_TYPE"
+		else
+			param set MAV_TYPE $MAV_TYPE
+		fi
 		
 		# Load mixer and configure outputs
 		sh /etc/init.d/rc.interface
 		
 		# Start standard multicopter apps
-		sh /etc/init.d/rc.mc_apps
+		if [ $LOAD_DEFAULT_APPS == yes ]
+		then
+			sh /etc/init.d/rc.mc_apps
+		fi
 	fi
 
 	#
@@ -490,10 +553,8 @@ then
 	#
 	if [ $VEHICLE_TYPE == none ]
 	then
-		echo "[init] Vehicle type: GENERIC"
+		echo "[init] Vehicle type: No autostart ID found"
 
-		# Load mixer and configure outputs
-		sh /etc/init.d/rc.interface
 	fi
 
 	# Start any custom addons
@@ -507,6 +568,7 @@ then
 
 	if [ $EXIT_ON_END == yes ]
 	then
+		echo "[init] Exit from nsh"
 		exit
 	fi
 

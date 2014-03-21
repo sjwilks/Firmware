@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -210,8 +209,8 @@ private:
 	struct differential_pressure_s _diff_pres;
 	struct airspeed_s _airspeed;
 
-	math::Matrix	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
+	math::Matrix<3,3>	_board_rotation;		/**< rotation matrix for the orientation that the board is mounted */
+	math::Matrix<3,3>	_external_mag_rotation;		/**< rotation matrix for the orientation that an external mag is mounted */
 	bool		_mag_is_external;		/**< true if the active mag is on an external board */
 
 	uint64_t _battery_discharged;			/**< battery discharged current in mA*ms */
@@ -469,8 +468,6 @@ Sensors::Sensors() :
 /* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update")),
 
-	_board_rotation(3, 3),
-	_external_mag_rotation(3, 3),
 	_mag_is_external(false),
 	_battery_discharged(0),
 	_battery_current_timestamp(0)
@@ -638,41 +635,43 @@ Sensors::parameters_update()
 	if (!rc_valid)
 		warnx("WARNING     WARNING     WARNING\n\nRC CALIBRATION NOT SANE!\n\n");
 
+	const char *paramerr = "FAIL PARM LOAD";
+
 	/* channel mapping */
 	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
-		warnx("Failed getting roll chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
-		warnx("Failed getting pitch chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
-		warnx("Failed getting yaw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
-		warnx("Failed getting throttle chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
-		warnx("Failed getting mode sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_return_sw, &(_parameters.rc_map_return_sw)) != OK) {
-		warnx("Failed getting return sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_assisted_sw, &(_parameters.rc_map_assisted_sw)) != OK) {
-		warnx("Failed getting assisted sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_mission_sw, &(_parameters.rc_map_mission_sw)) != OK) {
-		warnx("Failed getting mission sw chan index");
+		warnx(paramerr);
 	}
 
 	if (param_get(_parameter_handles.rc_map_flaps, &(_parameters.rc_map_flaps)) != OK) {
-		warnx("Failed getting flaps chan index");
+		warnx(paramerr);
 	}
 
 //	if (param_get(_parameter_handles.rc_map_offboard_ctrl_mode_sw, &(_parameters.rc_map_offboard_ctrl_mode_sw)) != OK) {
@@ -744,12 +743,12 @@ Sensors::parameters_update()
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
-		warnx("Failed updating voltage scaling param");
+		warnx(paramerr);
 	}
 
 	/* scaling of ADC ticks to battery current */
 	if (param_get(_parameter_handles.battery_current_scaling, &(_parameters.battery_current_scaling)) != OK) {
-		warnx("Failed updating current scaling param");
+		warnx(paramerr);
 	}
 
 	param_get(_parameter_handles.board_rotation, &(_parameters.board_rotation));
@@ -797,7 +796,6 @@ Sensors::accel_init()
 
 #endif
 
-		warnx("using system accel");
 		close(fd);
 	}
 }
@@ -837,7 +835,6 @@ Sensors::gyro_init()
 
 #endif
 
-		warnx("using system gyro");
 		close(fd);
 	}
 }
@@ -932,7 +929,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		math::Vector3 vect = {accel_report.x, accel_report.y, accel_report.z};
+		math::Vector<3> vect(accel_report.x, accel_report.y, accel_report.z);
 		vect = _board_rotation * vect;
 
 		raw.accelerometer_m_s2[0] = vect(0);
@@ -943,7 +940,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		raw.accelerometer_raw[1] = accel_report.y_raw;
 		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		raw.accelerometer_counter++;
+		raw.accelerometer_timestamp = accel_report.timestamp;
 	}
 }
 
@@ -958,7 +955,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
-		math::Vector3 vect = {gyro_report.x, gyro_report.y, gyro_report.z};
+		math::Vector<3> vect(gyro_report.x, gyro_report.y, gyro_report.z);
 		vect = _board_rotation * vect;
 
 		raw.gyro_rad_s[0] = vect(0);
@@ -969,7 +966,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_counter++;
+		raw.timestamp = gyro_report.timestamp;
 	}
 }
 
@@ -984,7 +981,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 
 		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-		math::Vector3 vect = {mag_report.x, mag_report.y, mag_report.z};
+		math::Vector<3> vect(mag_report.x, mag_report.y, mag_report.z);
 
 		if (_mag_is_external)
 			vect = _external_mag_rotation * vect;
@@ -999,7 +996,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 		raw.magnetometer_raw[1] = mag_report.y_raw;
 		raw.magnetometer_raw[2] = mag_report.z_raw;
 
-		raw.magnetometer_counter++;
+		raw.magnetometer_timestamp = mag_report.timestamp;
 	}
 }
 
@@ -1017,7 +1014,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 		raw.baro_alt_meter = _barometer.altitude; // Altitude in meters
 		raw.baro_temp_celcius = _barometer.temperature; // Temperature in degrees celcius
 
-		raw.baro_counter++;
+		raw.baro_timestamp = _barometer.timestamp;
 	}
 }
 
@@ -1031,8 +1028,9 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &_diff_pres);
 
 		raw.differential_pressure_pa = _diff_pres.differential_pressure_pa;
-		raw.differential_pressure_counter++;
+		raw.differential_pressure_timestamp = _diff_pres.timestamp;
 
+		_airspeed.timestamp = hrt_absolute_time();
 		_airspeed.indicated_airspeed_m_s = calc_indicated_airspeed(_diff_pres.differential_pressure_pa);
 		_airspeed.true_airspeed_m_s = calc_true_airspeed(_diff_pres.differential_pressure_pa + raw.baro_pres_mbar * 1e2f,
 					      raw.baro_pres_mbar * 1e2f, raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
@@ -1278,6 +1276,9 @@ Sensors::rc_poll()
 
 		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 
+		if (rc_input.rc_lost)
+			return;
+
 		struct manual_control_setpoint_s manual_control;
 		struct actuator_controls_s actuator_group_3;
 
@@ -1322,7 +1323,7 @@ Sensors::rc_poll()
 			channel_limit = _rc_max_chan_count;
 
 		/* we are accepting this message */
-		_rc_last_valid = rc_input.timestamp;
+		_rc_last_valid = rc_input.timestamp_last_signal;
 
 		/* Read out values from raw message */
 		for (unsigned int i = 0; i < channel_limit; i++) {
@@ -1371,9 +1372,9 @@ Sensors::rc_poll()
 		}
 
 		_rc.chan_count = rc_input.channel_count;
-		_rc.timestamp = rc_input.timestamp;
+		_rc.timestamp = rc_input.timestamp_last_signal;
 
-		manual_control.timestamp = rc_input.timestamp;
+		manual_control.timestamp = rc_input.timestamp_last_signal;
 
 		/* roll input - rolling right is stick-wise and rotation-wise positive */
 		manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
@@ -1404,18 +1405,6 @@ Sensors::rc_poll()
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 
-		/* mode switch input */
-		manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
-
-		/* land switch input */
-		manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
-
-		/* assisted switch input */
-		manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
-
-		/* mission switch input */
-		manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
-
 		/* flaps */
 		if (_rc.function[FLAPS] >= 0) {
 
@@ -1426,12 +1415,24 @@ Sensors::rc_poll()
 			}
 		}
 
+		/* mode switch input */
 		if (_rc.function[MODE] >= 0) {
 			manual_control.mode_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MODE]].scaled);
 		}
 
+		/* assisted switch input */
+		if (_rc.function[ASSISTED] >= 0) {
+			manual_control.assisted_switch = limit_minus_one_to_one(_rc.chan[_rc.function[ASSISTED]].scaled);
+		}
+
+		/* mission switch input */
 		if (_rc.function[MISSION] >= 0) {
 			manual_control.mission_switch = limit_minus_one_to_one(_rc.chan[_rc.function[MISSION]].scaled);
+		}
+
+		/* return switch input */
+		if (_rc.function[RETURN] >= 0) {
+			manual_control.return_switch = limit_minus_one_to_one(_rc.chan[_rc.function[RETURN]].scaled);
 		}
 
 //		if (_rc.function[OFFBOARD_MODE] >= 0) {
@@ -1506,9 +1507,6 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
-
-	/* inform about start */
-	warnx("Initializing..");
 
 	/* start individual sensors */
 	accel_init();
@@ -1595,8 +1593,7 @@ Sensors::task_main()
 		/* check parameters for updates */
 		parameter_update_poll();
 
-		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
-		raw.timestamp = hrt_absolute_time();
+		/* the timestamp of the raw struct is updated by the gyro_poll() method */
 
 		/* copy most recent sensor data */
 		gyro_poll(raw);
@@ -1654,17 +1651,17 @@ int sensors_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (sensors::g_sensors != nullptr)
-			errx(0, "sensors task already running");
+			errx(0, "already running");
 
 		sensors::g_sensors = new Sensors;
 
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task alloc failed");
+			errx(1, "alloc failed");
 
 		if (OK != sensors::g_sensors->start()) {
 			delete sensors::g_sensors;
 			sensors::g_sensors = nullptr;
-			err(1, "sensors task start failed");
+			err(1, "start failed");
 		}
 
 		exit(0);
@@ -1672,7 +1669,7 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (sensors::g_sensors == nullptr)
-			errx(1, "sensors task not running");
+			errx(1, "not running");
 
 		delete sensors::g_sensors;
 		sensors::g_sensors = nullptr;
@@ -1681,10 +1678,10 @@ int sensors_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (sensors::g_sensors) {
-			errx(0, "task is running");
+			errx(0, "is running");
 
 		} else {
-			errx(1, "task is not running");
+			errx(1, "not running");
 		}
 	}
 
