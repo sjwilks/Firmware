@@ -37,7 +37,7 @@
  *
  * Camera controller via GPIO driver.
  *
- * @author Simon Wilks <sjwilks@gmailc.com>
+ * @author Simon Wilks <sjwilks@gmail.com>
  */
 
 #include <stdio.h>
