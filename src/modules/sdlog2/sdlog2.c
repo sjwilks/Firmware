@@ -118,7 +118,9 @@ static const int LOG_BUFFER_SIZE_DEFAULT = 8192;
 static const int MAX_WRITE_CHUNK = 512;
 static const int MIN_BYTES_TO_WRITE = 512;
 
-static const char *log_root = "/fs/microsd/log";
+static const char *log_root = "/fs/microsd";
+static char log_root_subdir[5];
+
 static int mavlink_fd = -1;
 struct logbuffer_s lb;
 
@@ -127,6 +129,7 @@ static pthread_mutex_t logbuffer_mutex;
 static pthread_cond_t logbuffer_cond;
 
 static char log_dir[32];
+static char log_file_ext[4];
 
 /* statistics counters */
 static uint64_t start_time = 0;
@@ -357,8 +360,8 @@ int open_log_file()
 		time_t gps_time_sec = gps_time / 1000000;
 		struct tm t;
 		gmtime_r(&gps_time_sec, &t);
-		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S.bin", &t);
-		snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
+		strftime(log_file_name, sizeof(log_file_name), "%H_%M_%S", &t);
+		snprintf(log_file_path, sizeof(log_file_path), "%s/%s.%s", log_dir, log_file_name, log_file_ext);
 
 	} else {
 		uint16_t file_number = 1; // start with file log001
@@ -366,8 +369,8 @@ int open_log_file()
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/sess001/log001.bin */
-			snprintf(log_file_name, sizeof(log_file_name), "log%03u.bin", file_number);
-			snprintf(log_file_path, sizeof(log_file_path), "%s/%s", log_dir, log_file_name);
+			snprintf(log_file_name, sizeof(log_file_name), "log%03u", file_number);
+			snprintf(log_file_path, sizeof(log_file_path), "%s/%s.%s", log_dir, log_file_name, log_file_ext);
 
 			if (!file_exist(log_file_path)) {
 				break;
@@ -670,6 +673,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 	flag_system_armed = false;
 
+	/* assign the default root subdirectory */
+	snprintf(log_root_subdir, sizeof(log_root_subdir), "log");
+
+	/* assign the default filename extension */
+	//snprintf(log_dir, sizeof(log_dir), "log");
+	snprintf(log_file_ext, sizeof(log_file_ext), "bin");
+
 	/* work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
@@ -679,7 +689,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	 * set error flag instead */
 	bool err_flag = false;
 
-	while ((ch = getopt(argc, argv, "r:b:eat")) != EOF) {
+	while ((ch = getopt(argc, argv, "r:b:eatw")) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(optarg, NULL, 10);
@@ -713,6 +723,15 @@ int sdlog2_thread_main(int argc, char *argv[])
 
 		case 't':
 			log_name_timestamp = true;
+			break;
+
+		case 'w':
+			/* Eye-Fi SD cards need a specific directory */
+			snprintf(log_root_subdir, sizeof(log_root_subdir), "DCIM");
+
+			/* And a specific file extension */
+			//snprintf(log_dir, sizeof(log_dir), "DCIM/");
+			snprintf(log_file_ext, sizeof(log_file_ext), "avi");
 			break;
 
 		case '?':
