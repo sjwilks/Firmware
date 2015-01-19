@@ -245,8 +245,7 @@ transition_result_t arm_disarm(bool arm, const int mavlink_fd, const char *armed
 * @brief This function initializes the home position of the vehicle. This happens first time we get a good GPS fix and each
 *		 time the vehicle is armed with a good GPS fix.
 **/
-static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
-					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition);
+static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home, const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -568,7 +567,7 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 		}
 		break;
 
-		/* Flight termination */
+	/* Flight termination */
 	case VEHICLE_CMD_DO_FLIGHTTERMINATION: {
 			if (cmd->param1 > 0.5f) {
 				//XXX update state machine?
@@ -728,16 +727,15 @@ bool handle_command(struct vehicle_status_s *status_local, const struct safety_s
 * @brief This function initializes the home position of the vehicle. This happens first time we get a good GPS fix and each
 *		 time the vehicle is armed with a good GPS fix.
 **/
-static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home,
-					const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition)
+static void commander_set_home_position(orb_advert_t &homePub, home_position_s &home, const vehicle_local_position_s &localPosition, const vehicle_global_position_s &globalPosition)
 {
 	//Need global position fix to be able to set home
-	if (!status.condition_global_position_valid) {
+	if(!status.condition_global_position_valid) {
 		return;
 	}
 
 	//Ensure that the GPS accuracy is good enough for intializing home
-	if (globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold) {
+	if(globalPosition.eph > eph_threshold || globalPosition.epv > epv_threshold) {
 		return;
 	}
 
@@ -763,7 +761,7 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 	}
 
 	//Play tune first time we initialize HOME
-	if (!status.condition_home_position_valid) {
+	if(!status.condition_home_position_valid) {
 		tune_positive(true);
 	}
 
@@ -1155,8 +1153,8 @@ int commander_thread_main(int argc, char *argv[])
 				}
 
 				/* set vehicle_status.is_vtol flag */
-				status.is_vtol = (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR) ||
-						 (status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+				status.is_vtol =  (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR) ||
+				    (status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
 
 				/* check and update system / component ID */
 				param_get(_param_system_id, &(status.system_id));
@@ -1318,12 +1316,12 @@ int commander_thread_main(int argc, char *argv[])
 			}
 
 			//Notify the user if the status of the safety switch changes
-			if (safety.safety_switch_available && previous_safety_off != safety.safety_off) {
+			if(safety.safety_switch_available && previous_safety_off != safety.safety_off) {
 
-				if (safety.safety_off) {
+				if(safety.safety_off) {
 					set_tune(TONE_NOTIFY_POSITIVE_TUNE);
-
-				} else {
+				}
+				else {
 					tune_neutral(true);
 				}
 
@@ -1338,7 +1336,6 @@ int commander_thread_main(int argc, char *argv[])
 			/* vtol status changed */
 			orb_copy(ORB_ID(vtol_vehicle_status), vtol_vehicle_status_sub, &vtol_status);
 			status.vtol_fw_permanent_stab = vtol_status.fw_permanent_stab;
-
 			/* Make sure that this is only adjusted if vehicle realy is of type vtol*/
 			if (status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR || VEHICLE_TYPE_VTOL_QUADROTOR) {
 				status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
@@ -1647,8 +1644,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			} else {
 				if (status.rc_signal_lost) {
-					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED after %llums",
-							     (hrt_absolute_time() - status.rc_signal_lost_timestamp) / 1000);
+					mavlink_log_critical(mavlink_fd, "RC SIGNAL REGAINED after %llums",(hrt_absolute_time()-status.rc_signal_lost_timestamp)/1000);
 					status_changed = true;
 				}
 			}
@@ -1749,9 +1745,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		} else {
 			if (!status.rc_signal_lost) {
-				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST (at t=%llums)", hrt_absolute_time() / 1000);
+				mavlink_log_critical(mavlink_fd, "RC SIGNAL LOST (at t=%llums)",hrt_absolute_time()/1000);
 				status.rc_signal_lost = true;
-				status.rc_signal_lost_timestamp = sp_man.timestamp;
+				status.rc_signal_lost_timestamp=sp_man.timestamp;
 				status_changed = true;
 			}
 		}
@@ -1902,13 +1898,13 @@ int commander_thread_main(int argc, char *argv[])
 		const hrt_abstime now = hrt_absolute_time();
 
 		//First time home position update
-		if (!status.condition_home_position_valid) {
-			commander_set_home_position(home_pub, home, local_position, global_position);
+		if(!status.condition_home_position_valid) {
+			commander_set_home_position(home_pub, home, local_position, global_position);				
 		}
 
 		/* update home position on arming if at least 2s from commander start spent to avoid setting home on in-air restart */
-		else if (arming_state_changed && armed.armed && !was_armed && now > commander_boot_timestamp + 2000000) {
-			commander_set_home_position(home_pub, home, local_position, global_position);
+		else if(arming_state_changed && armed.armed && !was_armed && now > commander_boot_timestamp + 2000000) {
+			commander_set_home_position(home_pub, home, local_position, global_position);				
 		}
 
 		/* print new state */
@@ -1935,14 +1931,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;
-
 			if (status.failsafe) {
 				mavlink_log_critical(mavlink_fd, "failsafe mode on");
-
 			} else {
 				mavlink_log_critical(mavlink_fd, "failsafe mode off");
 			}
-
 			failsafe_old = status.failsafe;
 		}
 
@@ -1988,7 +1981,7 @@ int commander_thread_main(int argc, char *argv[])
 		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
 
 			//Notify the user that it is safe to approach the vehicle
-			if (arm_tune_played) {
+			if(arm_tune_played) {
 				tune_neutral(true);
 			}
 
@@ -2455,7 +2448,6 @@ set_control_mode()
 			control_mode.flag_control_position_enabled = false;
 			control_mode.flag_control_velocity_enabled = false;
 		}
-
 		break;
 
 	default:
@@ -2494,7 +2486,7 @@ void answer_command(struct vehicle_command_s &cmd, enum VEHICLE_CMD_RESULT resul
 {
 	switch (result) {
 	case VEHICLE_CMD_RESULT_ACCEPTED:
-			tune_positive(true);
+		tune_positive(true);
 		break;
 
 	case VEHICLE_CMD_RESULT_DENIED:
