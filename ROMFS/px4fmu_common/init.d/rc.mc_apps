@@ -3,10 +3,7 @@
 # Standard apps for multirotors:
 # att & pos estimator, att & pos control.
 #
-
-attitude_estimator_ekf start
-#ekf_att_pos_estimator start
-position_estimator_inav start
+ekf_att_pos_estimator start
 
 mc_att_control start
 mc_pos_control start
